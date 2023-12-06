@@ -15,7 +15,7 @@ public class Client {
         this.clientId = clientId;
         this.email = email;
         this.serverIP = serverIP;
-        this.serverPort = serverPort;
+        this.serverPort = serverPort; //hello
     }
 
     public int getClientId() {

@@ -1,40 +1,67 @@
 package cpen221.mp3.event;
 
+import cpen221.mp3.server.Server;
+
 public class ActuatorEvent implements Event {
     // TODO: Implement this class
+    private double TimeStamp;
+    private int CLientId;
+    private int EntityId;
+    String EntityType;
+    boolean Value;
     // you can add private fields and methods to this class
 
-    public ActuatorEvent(double TimeStamp, 
-                        int ClientId,
-                        int EntityId, 
-                        String EntityType, 
-                        boolean Value) {
-        // Implement this constructor
+    public ActuatorEvent(double TimeStamp,
+                         int ClientId,
+                         int EntityId,
+                         String EntityType,
+                         boolean Value) {
+        this.TimeStamp = TimeStamp;
+        this.CLientId = ClientId;
+        this.EntityId = EntityId;
+        this.EntityType = EntityType;
+        this.Value = Value;
+
     }
 
+    /**
+     * Returning the timestamp of an event
+     * @return double Time stamp (Done)
+     */
     public double getTimeStamp() {
-        // Implement this method
-        return 0;
+        return this.TimeStamp;
     }
 
+    /**
+     * Retuning the Client ID
+     * @return int Client ID (Done)
+     */
     public int getClientId() {
-        // Implement this method
-        return 0;
+        return this.CLientId;
     }
 
+    /**
+     * Returning the EntityID
+     * @return int entityID (Done)
+     */
     public int getEntityId() {
-        // Implement this method
-        return 0;
+        return this.EntityId;
     }
 
+    /**
+     * Returning the Entity type of the event
+     * @return String Entity Type
+     */
     public String getEntityType() {
-        // Implement this method
-        return null;
+        return this.EntityType;
     }
 
+    /**
+     * Returning the Boolean value of the event
+     * @return Boolean of Value
+     */
     public boolean getValueBoolean() {
-        // Implement this method
-        return false;
+        return this.Value;
     }
 
     // Actuator events do not have a double value

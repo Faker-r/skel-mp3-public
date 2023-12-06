@@ -1,10 +1,34 @@
 package cpen221.mp3.entity;
 
+import cpen221.mp3.client.Client;
 import cpen221.mp3.client.Request;
 import cpen221.mp3.event.Event;
+import cpen221.mp3.server.Server;
 import cpen221.mp3.server.SeverCommandToActuator;
 
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+
 public class Actuator implements Entity {
+
+    /**
+     * Rep Invariant
+     *
+     * id       :  integer more than 0, represent the ID of the actuator
+     * clientID :integer more than 0, represent the ID of the client
+     * type     : non-empty String, represent the object of the actuator
+     * state    : non-empty boolean, represent the current state
+     * EventGenerationFrequency    : double more than 0, represent the frequency that the message is sent
+     * serverPort : integer more than 0, represent the port of the connected server
+     * serverIP : non-empty String, represent the IP od the connected server
+     * host : integer more than 0, represent the host of the actuator, as the actuator also works as Server
+     * port : integer more than 0, represent the port of the actuator, as the actuator also works as Server
+     * actuatorSocket : non-empty socket type, represent the socket of the actuator object
+     * actuatorWriter : non-empty printWriter, represent the writer that can send data to the socket
+     *
+     */
+
     private final int id;
     private int clientId;
     private final String type;
@@ -16,6 +40,11 @@ public class Actuator implements Entity {
     // the following specifies the http endpoint that the actuator should be able to receive commands on from server
     private String host = null;
     private int port = 0;
+    private ServerSocket actuatorServerSocket;
+    private Socket actuatorSocket;
+    private BufferedReader actuatorRead;
+    private PrintWriter actuatorWrite;
+    private int numFail = 0;
 
     public Actuator(int id, String type, boolean init_state) {
         this.id = id;
@@ -23,6 +52,12 @@ public class Actuator implements Entity {
         this.type = type;
         this.state = init_state;
         // TODO: need to establish a server socket to listen for commands from server
+        try{
+            actuatorServerSocket = new ServerSocket(port); // need to be finished
+        } catch(IOException e){
+            System.out.println("Failing to initialize");
+        }
+
     }
 
     public Actuator(int id, int clientId, String type, boolean init_state) {
@@ -31,6 +66,11 @@ public class Actuator implements Entity {
         this.type = type;
         this.state = init_state;
         // TODO: need to establish a server socket to listen for commands from server
+        try {
+            actuatorServerSocket = new ServerSocket(port); //need to be fixed
+        } catch(IOException e){
+            System.out.println("Failing to initialize");
+        }
     }
 
     public Actuator(int id, String type, boolean init_state, String serverIP, int serverPort) {
@@ -41,6 +81,14 @@ public class Actuator implements Entity {
         this.serverIP = serverIP;
         this.serverPort = serverPort;
         // TODO: need to establish a server socket to listen for commands from server
+        try{
+            actuatorServerSocket = new ServerSocket(port);
+            actuatorSocket = new Socket(serverIP,serverPort);
+            actuatorWrite = new PrintWriter(new OutputStreamWriter(actuatorSocket.getOutputStream()));
+            actuatorRead = new BufferedReader(new InputStreamReader(actuatorSocket.getInputStream()));
+        } catch(IOException e){
+            System.out.println("Failing to initialize");
+        }
     }
 
     public Actuator(int id, int clientId, String type, boolean init_state, String serverIP, int serverPort) {
@@ -51,6 +99,14 @@ public class Actuator implements Entity {
         this.serverIP = serverIP;
         this.serverPort = serverPort;
         // TODO: need to establish a server socket to listen for commands from server
+        try{
+            actuatorServerSocket = new ServerSocket();
+            actuatorSocket = new Socket(serverIP,serverPort);
+            actuatorWrite = new PrintWriter(new OutputStreamWriter(actuatorSocket.getOutputStream()));
+            actuatorRead = new BufferedReader(new InputStreamReader(actuatorSocket.getInputStream()));
+        } catch(IOException e){
+            System.out.println("Failing to initialize");
+        }
     }
 
     public int getId() {
@@ -87,39 +143,74 @@ public class Actuator implements Entity {
 
     /**
      * Registers the actuator for the given client
-     * 
+     *
      * @return true if the actuator is new (clientID is -1 already) and gets successfully registered or if it is already registered for clientId, else false
      */
     public boolean registerForClient(int clientId) {
-        // implement this method
-        return false;
+        if(this.clientId == -1 || this.clientId == clientId){
+            this.clientId = clientId;
+            return true;
+        }
+        else return false;
     }
 
     /**
-     * Sets or updates the http endpoint that 
+     * Sets or updates the http endpoint that
      * the actuator should send events to
-     * 
+     *
      * @param serverIP the IP address of the endpoint
      * @param serverPort the port number of the endpoint
      */
     public void setEndpoint(String serverIP, int serverPort){
         this.serverIP = serverIP;
         this.serverPort = serverPort;
+        try{
+            actuatorSocket = new Socket(serverIP,serverPort);
+            actuatorWrite = new PrintWriter(new OutputStreamWriter(actuatorSocket.getOutputStream()));
+            actuatorRead = new BufferedReader(new InputStreamReader(actuatorSocket.getInputStream()));
+            System.out.println("new endpoint Has been initialized");
+        } catch (IOException e){
+            e.printStackTrace();
+            System.out.println("Actuator cannot be initiialized");
+        }
     }
 
     /**
      * Sets the frequency of event generation
      *
      * @param frequency the frequency of event generation in Hz (1/s)
+     * @throws IllegalArgumentException if the frequency less than equals to 0
      */
     public void setEventGenerationFrequency(double frequency){
-        // implement this method
+        if(frequency <= 0 ){
+            throw new IllegalArgumentException("Invalid Input");
+        }
+        else this.eventGenerationFrequency = frequency;
     }
 
     public void sendEvent(Event event) {
-        // implement this method
+        if(this.serverIP == null){
+            System.out.println("Message cannot be initalized, CheckServerIP");
+            numFail++;
 
-        // note that Event is a complex object that you need to serialize before sending
+        }
+        else {
+            String stringEvent = event.toString();
+            actuatorWrite.println(stringEvent);
+            actuatorWrite.flush();
+
+            if(actuatorWrite.checkError()){
+                System.out.println("Message cannot be sent, id : " + this.id);
+                numFail++;
+            }
+        }
+        if(numFail == 10){
+            try{
+                Thread.sleep(10000);
+            } catch (InterruptedException e){
+
+            }
+        }
     }
 
     public void processServerMessage(Request command) {
@@ -137,5 +228,6 @@ public class Actuator implements Entity {
                 '}';
     }
 
-    // you will most likely need additional helper methods for this class
+    // you will most likely need additional helper methods for this class\
+
 }

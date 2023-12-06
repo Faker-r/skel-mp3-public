@@ -1,6 +1,10 @@
 package cpen221.mp3.server;
 
+import cpen221.mp3.event.ActuatorEvent;
 import cpen221.mp3.event.Event;
+import cpen221.mp3.event.SensorEvent;
+
+import java.util.ArrayList;
 import java.util.List;
 
 enum DoubleOperator {
@@ -18,13 +22,20 @@ enum BooleanOperator {
 
 public class Filter {
     // you can add private fields and methods to this class
+    private BooleanOperator booleanOperator;
+    private DoubleOperator doubleOperator;
+    private boolean booleanValue = true;
+    private String field;
+    private double doubleValue = 0.0;
+    private List<Filter> listOfFilters = new ArrayList<>();
+
 
     /**
      * Constructs a filter that compares the boolean (actuator) event value
      * to the given boolean value using the given BooleanOperator.
      * (X (BooleanOperator) value), where X is the event's value passed by satisfies or sift methods.
      * A BooleanOperator can be one of the following:
-     * 
+     *
      * BooleanOperator.EQUALS
      * BooleanOperator.NOT_EQUALS
      *
@@ -33,6 +44,10 @@ public class Filter {
      */
     public Filter(BooleanOperator operator, boolean value) {
         // TODO: implement this method
+        this.booleanOperator = operator;
+        this.booleanValue  = value;
+        this.field = "value";
+        this.listOfFilters.add(this);
     }
 
     /**
@@ -40,13 +55,13 @@ public class Filter {
      * with the given double value using the given DoubleOperator.
      * (X (DoubleOperator) value), where X is the event's value passed by satisfies or sift methods.
      * A DoubleOperator can be one of the following:
-     * 
+     *
      * DoubleOperator.EQUALS
      * DoubleOperator.GREATER_THAN
      * DoubleOperator.LESS_THAN
      * DoubleOperator.GREATER_THAN_OR_EQUALS
      * DoubleOperator.LESS_THAN_OR_EQUALS
-     * 
+     *
      * For non-double (boolean) value events, the satisfies method should return false.
      *
      * @param field the field to match (event "value" or event "timestamp")
@@ -57,8 +72,12 @@ public class Filter {
      */
     public Filter(String field, DoubleOperator operator, double value) {
         // TODO: implement this method
+        this.field = field;
+        this.doubleOperator = operator;
+        this.doubleValue = value;
+        this.listOfFilters.add(this);
     }
-    
+
     /**
      * A filter can be composed of other filters.
      * in this case, the filter should satisfy all the filters in the list.
@@ -68,6 +87,7 @@ public class Filter {
      */
     public Filter(List<Filter> filters) {
         // TODO: implement this method
+        this.listOfFilters = filters;
     }
 
     /**
@@ -78,7 +98,68 @@ public class Filter {
      */
     public boolean satisfies(Event event) {
         // TODO: implement this method
-        return false;
+        List<Boolean> listOfAnswers = new ArrayList<>();
+        for(Filter x : listOfFilters){
+            if("value".equals(x.field)){
+                if(event instanceof ActuatorEvent){
+                    ActuatorEvent currentEvent = (ActuatorEvent) event;
+                    if(x.booleanOperator == null){
+                        listOfAnswers.add(false);
+                    }
+                    else if(x.booleanOperator.equals(BooleanOperator.EQUALS)){
+                        listOfAnswers.add(currentEvent.getValueBoolean() == x.booleanValue);
+                    }
+                    else if(x.booleanOperator.equals(BooleanOperator.NOT_EQUALS)){
+                        listOfAnswers.add(currentEvent.getValueBoolean() != x.booleanValue);
+                    }
+                    else{
+                        throw new IllegalArgumentException("Wrong operator Implementation");
+                    }
+                }
+                else if(event instanceof SensorEvent){
+                    SensorEvent currentEvent = (SensorEvent) event;
+                    if(x.doubleOperator == null){
+                        listOfAnswers.add(false);
+                    }
+                    else if(x.doubleOperator.equals(DoubleOperator.GREATER_THAN)){
+                        listOfAnswers.add(currentEvent.getValueDouble() > x.doubleValue);
+                    }
+                    else if(x.doubleOperator.equals(DoubleOperator.EQUALS)) {
+                        listOfAnswers.add(currentEvent.getValueDouble() == x.doubleValue);
+                    }
+                    else if(x.doubleOperator.equals(DoubleOperator.LESS_THAN)){
+                        listOfAnswers.add(currentEvent.getValueDouble() < x.doubleValue);
+                    }
+                    else if(x.doubleOperator.equals(DoubleOperator.LESS_THAN_OR_EQUALS)){
+                        listOfAnswers.add(currentEvent.getValueDouble() <= x.doubleValue);
+                    }
+                    else if(x.doubleOperator.equals(DoubleOperator.GREATER_THAN_OR_EQUALS)){
+                        listOfAnswers.add(currentEvent.getValueDouble() >= x.doubleValue);
+                    }
+                }
+            }
+            else if("timestamp".equals(x.field)){
+                if(x.doubleOperator.equals(DoubleOperator.GREATER_THAN)){
+                    listOfAnswers.add(event.getTimeStamp() > x.doubleValue);
+                }
+                else if(x.doubleOperator.equals(DoubleOperator.EQUALS)){
+                    listOfAnswers.add(event.getTimeStamp() > x.doubleValue);
+                }
+                else if(x.doubleOperator.equals(DoubleOperator.LESS_THAN)){
+                    listOfAnswers.add(event.getTimeStamp() < x.doubleValue);
+                }
+            }
+            else{
+                throw new IllegalArgumentException("invalid Event");
+            }
+        }
+
+        for(Boolean y : listOfAnswers){
+            if(y.equals(false)){
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -89,7 +170,14 @@ public class Filter {
      */
     public boolean satisfies(List<Event> events) {
         // TODO: implement this method
-        return false;
+        List<Boolean> listOfStaisfaction = new ArrayList<>();
+        for(Event x : events){
+            boolean satisfaction = this.satisfies(x);
+            if(!satisfaction){
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -101,6 +189,9 @@ public class Filter {
      */
     public Event sift(Event event) {
         // TODO: implement this method
+        if(this.satisfies(event)){
+            return event;
+        }
         return null;
     }
 
@@ -114,12 +205,29 @@ public class Filter {
      */
     public List<Event> sift(List<Event> events) {
         // TODO: implement this method
-        return null;
+        List<Event> outcome = new ArrayList<>();
+        for(Event x : events){
+            if(this.satisfies(x)){
+                outcome.add(x);
+            }
+        }
+        return outcome;
     }
 
     @Override
     public String toString() {
-        // TODO: implement this method
+        if(booleanOperator == null){
+            String outcome =
+                    "Filter : " +
+                            "DoubleOperator : " + doubleValue +
+                            "DoubleValue :" + doubleValue;
+        }
+        else{
+            String outcome =
+                    "Filter : " +
+                            "BooleanOperator :" + booleanOperator.toString()+
+                            "BooleanValue :" + booleanValue ;
+        }
         return null;
     }
 }

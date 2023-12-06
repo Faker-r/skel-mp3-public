@@ -4,37 +4,62 @@ public class SensorEvent implements Event {
     // TODO: Implement this class
     // you can add private fields and methods to this class
 
+    private double TimeStamp;
+    private int CLientId;
+    private int EntityId;
+    String EntityType;
+    double Value;
+
     public SensorEvent(double TimeStamp,
-                        int ClientId,
-                        int EntityId, 
-                        String EntityType, 
-                        double Value) {
-        // Implement this constructor
+                       int ClientId,
+                       int EntityId,
+                       String EntityType,
+                       double Value) {
+        this.TimeStamp = TimeStamp;
+        this.CLientId = ClientId;
+        this.EntityId = EntityId;
+        this.EntityType = EntityType;
+        this.Value = Value;
     }
 
+    /**
+     * Returning the timestamp of an event
+     * @return double Time stamp (Done)
+     */
     public double getTimeStamp() {
-        // Implement this method
-        return 0;
+        return this.TimeStamp;
     }
 
+    /**
+     * Retuning the Client ID
+     * @return int Client ID (Done)
+     */
     public int getClientId() {
-        // Implement this method
-        return 0;
+        return this.CLientId;
     }
 
+    /**
+     * Returning the EntityID
+     * @return int entityID (Done)
+     */
     public int getEntityId() {
-        // Implement this method
-        return 0;
+        return this.EntityId;
     }
 
+    /**
+     * Returning the Entity type of the event
+     * @return String Entity Type (Done)
+     */
     public String getEntityType() {
-        // Implement this method
-        return null;
+        return this.EntityType;
     }
 
+    /**
+     * Returning the value of this event
+     * @return double of Value (Done)
+     */
     public double getValueDouble() {
-        // Implement this method
-        return 0;
+        return this.Value;
     }
 
     // Sensor events do not have a boolean value
@@ -46,11 +71,11 @@ public class SensorEvent implements Event {
     @Override
     public String toString() {
         return "SensorEvent{" +
-               "TimeStamp=" + getTimeStamp() +
-               ",ClientId=" + getClientId() + 
-               ",EntityId=" + getEntityId() +
-               ",EntityType=" + getEntityType() + 
-               ",Value=" + getValueDouble() + 
-               '}';
+                "TimeStamp=" + getTimeStamp() +
+                ",ClientId=" + getClientId() +
+                ",EntityId=" + getEntityId() +
+                ",EntityType=" + getEntityType() +
+                ",Value=" + getValueDouble() +
+                '}';
     }
 }

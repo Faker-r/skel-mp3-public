@@ -5,16 +5,34 @@ import cpen221.mp3.client.Client;
 import cpen221.mp3.event.Event;
 import cpen221.mp3.client.Request;
 
-import java.util.List;
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Server {
     private Client client;
     private double maxWaitTime = 2; // in seconds
+    private Socket socketForServer;
+    private PrintWriter serverWriter;
+    private BufferedReader serverReader;
+    private List<Event> historyOfEvent = new ArrayList<>();
+    private Queue<Event> currentEvent = new PriorityQueue<>();
+
 
     // you may need to add additional private fields
 
-    public Server(Client client) {
+    public Server(Client client){
         // implement the Server constructor
+        this.client = client;
+        try{
+            socketForServer = new Socket();//
+            serverWriter = new PrintWriter(new OutputStreamWriter(socketForServer.getOutputStream()));
+            serverReader = new BufferedReader(new InputStreamReader(socketForServer.getInputStream()));
+        } catch (IOException e){
+            System.out.println("Cannot Initialized Server");
+        }
     }
 
     /**
@@ -28,6 +46,7 @@ public class Server {
      */
     public void updateMaxWaitTime(double maxWaitTime) {
         // implement this method
+        this.maxWaitTime = maxWaitTime;
 
         // Important note: updating maxWaitTime may not be as simple as
         // just updating the field. You may need to do some additional
@@ -37,23 +56,26 @@ public class Server {
 
     /**
      * Set the actuator state if the given filter is satisfied by the latest event.
-     * Here the latest event is the event with the latest timestamp not the event 
+     * Here the latest event is the event with the latest timestamp not the event
      * that was received by the server the latest.
      *
      * If the actuator is not registered for the client, then this method should do nothing.
-     * 
+     *
      * @param filter the filter to check
      * @param actuator the actuator to set the state of as true
      */
     public void setActuatorStateIf(Filter filter, Actuator actuator) {
         // implement this method and send the appropriate SeverCommandToActuator as a Request to the actuator
+        boolean x = historyOfEvent.stream()
+                .filter(m -> m.getEntityId() == actuator.getId())
+                .max(Comparator.comparingDouble(Event::getTimeStamp)).get().getValueBoolean();
     }
-    
+
     /**
      * Toggle the actuator state if the given filter is satisfied by the latest event.
-     * Here the latest event is the event with the latest timestamp not the event 
+     * Here the latest event is the event with the latest timestamp not the event
      * that was received by the server the latest.
-     * 
+     *
      * If the actuator has never sent an event to the server, then this method should do nothing.
      * If the actuator is not registered for the client, then this method should do nothing.
      *
@@ -62,6 +84,9 @@ public class Server {
      */
     public void toggleActuatorStateIf(Filter filter, Actuator actuator) {
         // implement this method and send the appropriate SeverCommandToActuator as a Request to the actuator
+        boolean x = historyOfEvent.stream()
+                .filter(m -> m.getEntityId() == actuator.getId())
+                .max(Comparator.comparingDouble(Event::getTimeStamp)).get().getValueBoolean();
     }
 
     /**
@@ -72,6 +97,7 @@ public class Server {
      */
     public void logIf(Filter filter) {
         // implement this method
+
     }
 
     /**
@@ -80,7 +106,7 @@ public class Server {
      * The list should be sorted in the order of event timestamps.
      * After the logs are read, they should be cleared from the server.
      *
-     * @return list of event IDs 
+     * @return list of event IDs
      */
     public List<Integer> readLogs() {
         // implement this method
@@ -89,7 +115,7 @@ public class Server {
 
     /**
      * List all the events of the client that occurred in the given time window.
-     * Here the timestamp of an event is the time at which the event occurred, not 
+     * Here the timestamp of an event is the time at which the event occurred, not
      * the time at which the event was received by the server.
      * If no events occurred in the given time window, then this method should return an empty list.
      *
@@ -98,18 +124,20 @@ public class Server {
      */
     public List<Event> eventsInTimeWindow(TimeWindow timeWindow) {
         // implement this method
+
         return null;
     }
 
-     /**
-     * Returns a set of IDs for all the entities of the client for which 
+    /**
+     * Returns a set of IDs for all the entities of the client for which
      * we have received events so far.
      * Returns an empty list if no events have been received for the client.
-     * 
+     *
      * @return list of all the entities of the client for which we have received events so far
      */
     public List<Integer> getAllEntities() {
         // implement this method
+
         return null;
     }
 
@@ -134,22 +162,23 @@ public class Server {
      * in terms of the number of events it has generated.
      *
      * If there was a tie, then this method should return the largest ID.
-     * 
+     *
      * @return the most active entity ID of the client
      */
     public int mostActiveEntity() {
         // implement this method
+
         return -1;
     }
 
     /**
-     * the client can ask the server to predict what will be 
-     * the next n timestamps for the next n events 
+     * the client can ask the server to predict what will be
+     * the next n timestamps for the next n events
      * of the given entity of the client (the entity is identified by its ID).
-     * 
+     *
      * If the server has not received any events for an entity with that ID,
      * or if that Entity is not registered for the client, then this method should return an empty list.
-     * 
+     *
      * @param entityId the ID of the entity
      * @param n the number of timestamps to predict
      * @return list of the predicted timestamps
@@ -160,15 +189,15 @@ public class Server {
     }
 
     /**
-     * the client can ask the server to predict what will be 
+     * the client can ask the server to predict what will be
      * the next n values of the timestamps for the next n events
      * of the given entity of the client (the entity is identified by its ID).
-     * The values correspond to Event.getValueDouble() or Event.getValueBoolean() 
+     * The values correspond to Event.getValueDouble() or Event.getValueBoolean()
      * based on the type of the entity. That is why the return type is List<Object>.
-     * 
+     *
      * If the server has not received any events for an entity with that ID,
      * or if that Entity is not registered for the client, then this method should return an empty list.
-     * 
+     *
      * @param entityId the ID of the entity
      * @param n the number of double value to predict
      * @return list of the predicted timestamps
@@ -184,5 +213,10 @@ public class Server {
 
     void processIncomingRequest(Request request) {
         // implement this method
+    }
+
+    public static void main(String[] args){
+        List<Double> x = List.of(1.2,7.9);
+        System.out.println(x.stream().max(Comparator.comparingDouble(p -> p)).orElse(100.9));
     }
 }

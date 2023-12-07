@@ -31,45 +31,46 @@ class MessageHandlerThread implements Runnable {
     public void run() {
         try{
             if (type.equals("Client")){
-
                 while (true) {
-                    String request = null;
-                    if ((request = reader.readLine()) != null) {
-
-                        String[] parts = request.split("\\|");
-                        Request newRequest = new Request(RequestType.valueOf(parts[1]), RequestCommand.valueOf(parts[2])
-                                , parts[4]);
+                    try{
+                        String request = reader.readLine();
+                        Request newRequest = PARSER.clientRequest(request);
                         server.processIncomingRequest(newRequest);
-
-                        //respond to request
+                    } catch (IOException e){
+                        e.printStackTrace();
+                        System.out.println("Unable to read request , id = " + String.valueOf(this.ClientID));
                     }
                 }
             }
 
             else if (type.equals("Sensor")){
                 while (true) {
+                    try{
+                        String sensorEvent = reader.readLine();
+                        Event newEvent = PARSER.SensorEvent(sensorEvent);
+                        server.processIncomingEvent(newEvent);
+                    } catch (IOException e){
+                        e.printStackTrace();
+                        System.out.println("Unable to get sensor data, EntityID" + String.valueOf("")); //fixing if the entityID
+                    }
                     //read from server for commands
-
-                    String sensorEvent = reader.readLine();
-                    String[] parts = sensorEvent.split("\\|");
-                    SensorEvent newEvent = new SensorEvent(Double.parseDouble(parts[0]), Integer.parseInt(parts[1]),
-                            Integer.parseInt(parts[2]), parts[3], Double.parseDouble(parts[4]));
-                    server.processIncomingEvent(newEvent);
                 }
             }
 
             else if (type.equals("Actuator")){
                 while (true) {
-                    //Read from queue
-                    String actuatorEvent = null;
-                    actuatorEvent = reader.readLine();
-                    String[] parts = actuatorEvent.split("\\|");
-                    ActuatorEvent newEvent = new ActuatorEvent(Double.parseDouble(parts[0]), Integer.parseInt(parts[1]),
-                            Integer.parseInt(parts[2]), parts[3], Boolean.parseBoolean(parts[4]));
-                    server.processIncomingEvent(newEvent);
+                    try {
+                        String actuatorEvent = reader.readLine();
+                        Event newEvent = PARSER.actuatorEvent(actuatorEvent);
+                        server.processIncomingEvent(newEvent);
+                    } catch (IOException e){
+                        e.printStackTrace();
+                        System.out.println("Unable to get sensor data, EntityID" + String.valueOf("")); //fixing if the entityID
+                    }
                 }
             }
         }
+
         catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
         }

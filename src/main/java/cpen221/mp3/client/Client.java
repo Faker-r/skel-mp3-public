@@ -66,7 +66,7 @@ public class Client {
             System.out.println("message cannot be initialized, check serverIP");
         }
         else{
-            String stringRequest = clientId + "|" + request.toString();
+            String stringRequest = request.toString();
             clientPrint.println(stringRequest);
             clientPrint.flush();
         }

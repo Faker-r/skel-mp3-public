@@ -5,7 +5,7 @@ import cpen221.mp3.event.*;
 
 public class PARSER {
     public static Request clientRequest(String input){
-        String[] parsedInput = input.split("[=,]");
+        String[] parsedInput = input.split("[|=,]");
         double timeStamp = Long.parseLong(parsedInput[1]);
         RequestType requestType = RequestType.valueOf(parsedInput[3]);
         RequestCommand requestCommand = RequestCommand.valueOf(parsedInput[5]);

@@ -6,19 +6,24 @@ import cpen221.mp3.event.Event;
 import cpen221.mp3.client.Request;
 
 import java.io.*;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.concurrent.BlockingQueue;
 
 public class Server {
     private Client client;
+    private int clientId;
     private double maxWaitTime = 2; // in seconds
     private Socket socketForServer;
     private PrintWriter serverWriter;
     private BufferedReader serverReader;
     private List<Event> historyOfEvent = new ArrayList<>();
     private Queue<Event> currentEvent = new PriorityQueue<>();
+    private ArrayList<Socket> sensors;
+    private ArrayList<Socket> actuators;
+    private Socket clientSocket;
+    private ArrayList<BlockingQueue> actuatorQueues;
+
 
 
     // you may need to add additional private fields
@@ -33,6 +38,19 @@ public class Server {
         } catch (IOException e){
             System.out.println("Cannot Initialized Server");
         }
+        //Make new thread to consume queue objects
+    }
+    public Server(int clientId){
+        this.clientId = clientId;
+    }
+    public void addClient(Socket clientSocket) {
+        this.clientSocket = clientSocket;
+    }
+    public void addSensors(Socket sensorSocket) {
+        sensors.add(sensorSocket);
+    }
+    public void addActuator(Socket actuatorSocket) {
+        actuators.add(actuatorSocket);
     }
 
     /**
@@ -106,7 +124,7 @@ public class Server {
      * The list should be sorted in the order of event timestamps.
      * After the logs are read, they should be cleared from the server.
      *
-     * @return list of event IDs
+     * @return list of entity IDs
      */
     public List<Integer> readLogs() {
         // implement this method
@@ -207,11 +225,11 @@ public class Server {
         return null;
     }
 
-    void processIncomingEvent(Event event) {
+    public void processIncomingEvent(Event event) {
         // implement this method
     }
 
-    void processIncomingRequest(Request request) {
+    public void processIncomingRequest(Request request) {
         // implement this method
     }
 

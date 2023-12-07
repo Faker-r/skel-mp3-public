@@ -19,21 +19,26 @@ public class Client {
 
     private static Map<Client, Entity> listOfEntity = new HashMap<>();
 
-    // you would need additional fields to enable functionalities required for this class
-
     public Client(int clientId, String email, String serverIP, int serverPort) {
         this.clientId = clientId;
         this.email = email;
         this.serverIP = serverIP;
         this.serverPort = serverPort;
-        try{
-            clientSocket = new Socket(serverIP,serverPort);
-            clientPrint = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+        try {
+            clientSocket = new Socket(serverIP, serverPort);
+            clientPrint = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()), true);
             clientReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-        } catch (IOException e){
-            System.out.println("Client Cannot be initialized");
+            sendIntroMessage(); // Send introductory message after establishing the connection
+        } catch (IOException e) {
+            System.out.println("Client Cannot be initialized: " + e.getMessage());
         }
+    }
 
+    private void sendIntroMessage() {
+        // Format: "Client|<clientId>"
+        String introMessage = "Client|" + this.clientId;
+        clientPrint.println(introMessage);
+        clientPrint.flush();
     }
 
     public int getClientId() {

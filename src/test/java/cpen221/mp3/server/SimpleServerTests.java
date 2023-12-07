@@ -30,6 +30,7 @@ public class SimpleServerTests {
         for (int i = 0; i < 10; i++) {
             server.processIncomingEvent(eventList.get(i));
         }
+
         Filter sensorValueFilter = new Filter("value", DoubleOperator.GREATER_THAN_OR_EQUALS, 23);
         server.setActuatorStateIf(sensorValueFilter, actuator1);
         assertEquals(true, actuator1.getState());

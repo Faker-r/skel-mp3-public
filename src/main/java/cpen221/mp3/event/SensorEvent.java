@@ -5,10 +5,11 @@ public class SensorEvent implements Event {
     // you can add private fields and methods to this class
 
     private double TimeStamp;
-    private int CLientId;
+    private int ClientId;
     private int EntityId;
     String EntityType;
     double Value;
+    private double readWorldTimeStamp;
 
     public SensorEvent(double TimeStamp,
                        int ClientId,
@@ -16,7 +17,7 @@ public class SensorEvent implements Event {
                        String EntityType,
                        double Value) {
         this.TimeStamp = TimeStamp;
-        this.CLientId = ClientId;
+        this.ClientId = ClientId;
         this.EntityId = EntityId;
         this.EntityType = EntityType;
         this.Value = Value;
@@ -35,7 +36,7 @@ public class SensorEvent implements Event {
      * @return int Client ID (Done)
      */
     public int getClientId() {
-        return this.CLientId;
+        return this.ClientId;
     }
 
     /**
@@ -70,12 +71,12 @@ public class SensorEvent implements Event {
 
     @Override
     public String toString() {
-        return "SensorEvent{" +
-                "TimeStamp=" + getTimeStamp() +
-                ",ClientId=" + getClientId() +
-                ",EntityId=" + getEntityId() +
-                ",EntityType=" + getEntityType() +
-                ",Value=" + getValueDouble() +
-                '}';
+        return
+                getTimeStamp() +
+                        "|" + getClientId() +
+                        "|" + getEntityId() +
+                        "|" + getEntityType() +
+                        "|" + getValueDouble()
+                ;
     }
 }

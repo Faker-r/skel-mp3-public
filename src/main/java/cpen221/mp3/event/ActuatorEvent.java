@@ -72,12 +72,11 @@ public class ActuatorEvent implements Event {
 
     @Override
     public String toString() {
-        return "ActuatorEvent{" +
-                "TimeStamp=" + getTimeStamp() +
-                ",ClientId=" + getClientId() +
-                ",EntityId=" + getEntityId() +
-                ",EntityType=" + getEntityType() +
-                ",Value=" + getValueBoolean() +
-                '}';
+        return getTimeStamp() +
+                "|" + getClientId() +
+                "|" + getEntityId() +
+                "|" + getEntityType() +
+                "|" + getValueBoolean()
+                ;
     }
 }

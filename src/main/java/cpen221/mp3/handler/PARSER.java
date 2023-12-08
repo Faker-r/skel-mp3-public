@@ -3,6 +3,9 @@ package cpen221.mp3.handler;
 import cpen221.mp3.client.*;
 import cpen221.mp3.event.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class PARSER {
     public static Request clientRequest(String input){
         String[] parsedInput = input.split("[|=,]");
@@ -61,5 +64,39 @@ public class PARSER {
 //                ",Value=" + getValueDouble() +
 //                '}';
 //    }
+
+    /**
+     *List of Event, translating string into List of Event
+     * Requires non-empty string with format
+     * " ................. event" + "|" + "....Event........." + "|" + "......Event........"
+     * @param input non-empty with specifies as above
+     * @return List of related
+     */
+    public static List<Event> ListOfEvent(String input){
+        String[] splitInput = input.split("\\|");
+        List<Event> output = new ArrayList<>();
+        for(String k : splitInput){
+            Event pashedEvent = PARSER.actuatorEvent(k);
+            output.add(pashedEvent);
+        }
+        return output;
+    }
+
+    /**
+     * Translating ListOFEvent into String, with specified format
+     * " ................. event" + "|" + "....Event........." + "|" + "......Event........"
+     * @param input non-empty List OF Event
+     * @return String, which is the translation of the Input
+     */
+    public static String ParsingListOfEvent(List<Event> input){
+        StringBuilder output = new StringBuilder();
+        for(Event x : input){
+            output.append(x.toString());
+            output.append("|");
+        }
+        return output.toString();
+    }
+
+
 
 }

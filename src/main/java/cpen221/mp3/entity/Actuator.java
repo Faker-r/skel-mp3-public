@@ -214,7 +214,17 @@ public class Actuator implements Entity {
     }
 
     public void processServerMessage(Request command) {
-        // implement this method
+        switch (command.getRequestCommand()){
+            case CONTROL_TOGGLE_ACTUATOR_STATE:
+                state = Boolean.TRUE;
+                break;
+            case CONTROL_SET_ACTUATOR_STATE:
+                if(state){
+                    state = Boolean.FALSE;
+                } else {
+                    state = Boolean.TRUE;
+                }
+        }
     }
 
     @Override

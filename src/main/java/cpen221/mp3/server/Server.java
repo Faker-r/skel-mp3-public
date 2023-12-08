@@ -1,14 +1,26 @@
 package cpen221.mp3.server;
 
+import cpen221.mp3.client.RequestCommand;
+import cpen221.mp3.client.RequestType;
 import cpen221.mp3.entity.Actuator;
 import cpen221.mp3.client.Client;
+import cpen221.mp3.entity.Entity;
+import cpen221.mp3.entity.Sensor;
+import cpen221.mp3.event.ActuatorEvent;
 import cpen221.mp3.event.Event;
 import cpen221.mp3.client.Request;
 
+import java.awt.event.HierarchyEvent;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import java.io.*;
 import java.net.Socket;
+import java.security.KeyStore;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.stream.Collectors;
 
 public class Server {
     private Client client;
@@ -18,11 +30,27 @@ public class Server {
     private PrintWriter serverWriter;
     private BufferedReader serverReader;
     private List<Event> historyOfEvent = new ArrayList<>();
+    private Map<Integer, Integer> mostActiveEntity;
     private Queue<Event> currentEvent = new PriorityQueue<>();
-    private ArrayList<Socket> sensors;
-    private ArrayList<Socket> actuators;
+    private ArrayList<Socket> sensorSockets;
+    private ArrayList<Socket> actuatorSockets;
+    private ArrayList<Event> log;
+
+
+    private  Map<Integer, Entity> entityIDs;
+
+    private  Map<Integer, Actuator> ActuatorIDs;
+
+    private  Map<Integer, Sensor> SensorIDs;
+
     private Socket clientSocket;
     private ArrayList<BlockingQueue> actuatorQueues;
+
+    private Filter logIf;
+    private Filter toggleIf;
+    private Filter setIf;
+    private Actuator toggleIfActuator;
+    private Actuator setIfActuator;
 
 
 
@@ -47,10 +75,10 @@ public class Server {
         this.clientSocket = clientSocket;
     }
     public void addSensors(Socket sensorSocket) {
-        sensors.add(sensorSocket);
+        sensorSockets.add(sensorSocket);
     }
     public void addActuator(Socket actuatorSocket) {
-        actuators.add(actuatorSocket);
+        actuatorSockets.add(actuatorSocket);
     }
 
     /**
@@ -83,10 +111,18 @@ public class Server {
      * @param actuator the actuator to set the state of as true
      */
     public void setActuatorStateIf(Filter filter, Actuator actuator) {
+
         // implement this method and send the appropriate SeverCommandToActuator as a Request to the actuator
         boolean x = historyOfEvent.stream()
                 .filter(m -> m.getEntityId() == actuator.getId())
-                .max(Comparator.comparingDouble(Event::getTimeStamp)).get().getValueBoolean();
+                .max(Comparator.comparingDouble(Event::getTimeStamp))
+                .map(Event::getValueBoolean)
+                .orElse(Boolean.FALSE);
+        if (x){
+            Request Command = new Request(RequestType.CONTROL, RequestCommand.CONTROL_SET_ACTUATOR_STATE
+                    , "ON");
+            //SEND COMMAND TO ACTUATOR
+        }
     }
 
     /**
@@ -104,7 +140,9 @@ public class Server {
         // implement this method and send the appropriate SeverCommandToActuator as a Request to the actuator
         boolean x = historyOfEvent.stream()
                 .filter(m -> m.getEntityId() == actuator.getId())
-                .max(Comparator.comparingDouble(Event::getTimeStamp)).get().getValueBoolean();
+                .max(Comparator.comparingDouble(Event::getTimeStamp))
+                .map(Event::getValueBoolean)
+                .orElse(Boolean.FALSE);
     }
 
     /**
@@ -114,8 +152,9 @@ public class Server {
      * @param filter the filter to check
      */
     public void logIf(Filter filter) {
-        // implement this method
-
+        if(filter.satisfies(historyOfEvent.get(0))){
+            log.add(historyOfEvent.get(0));
+        }
     }
 
     /**
@@ -127,8 +166,9 @@ public class Server {
      * @return list of entity IDs
      */
     public List<Integer> readLogs() {
-        // implement this method
-        return null;
+        ArrayList<Integer> clone = (ArrayList<Integer>) log.clone();
+        log.clear();
+        return clone;
     }
 
     /**
@@ -141,9 +181,10 @@ public class Server {
      * @return list of the events for the client in the given time window
      */
     public List<Event> eventsInTimeWindow(TimeWindow timeWindow) {
-        // implement this method
-
-        return null;
+        List<Event> eventsInWindow = historyOfEvent.stream()
+                .filter(event -> event.getTimeStamp() >= timeWindow.startTime && event.getTimeStamp() <= timeWindow.endTime)
+                .toList();
+        return eventsInWindow;
     }
 
     /**
@@ -154,9 +195,11 @@ public class Server {
      * @return list of all the entities of the client for which we have received events so far
      */
     public List<Integer> getAllEntities() {
-        // implement this method
-
-        return null;
+        List<Integer> uniqueIds = historyOfEvent.stream()
+                .map(Event::getEntityId)
+                .distinct()
+                .collect(Collectors.toList());
+        return uniqueIds;
     }
 
     /**
@@ -171,8 +214,7 @@ public class Server {
      * @return list of the latest n events of the client
      */
     public List<Event> lastNEvents(int n) {
-        // implement this method
-        return null;
+        return historyOfEvent.subList(historyOfEvent.size(), historyOfEvent.size() - n);
     }
 
     /**
@@ -184,9 +226,14 @@ public class Server {
      * @return the most active entity ID of the client
      */
     public int mostActiveEntity() {
-        // implement this method
-
-        return -1;
+        Optional<Integer> maxKey = mostActiveEntity.entrySet()
+                .stream()
+                .max(Entry.comparingByValue())
+                .map(Entry::getKey);
+        if(maxKey.isPresent()){
+            return maxKey.orElse(0);
+        }
+        return 0;
     }
 
     /**
@@ -226,11 +273,95 @@ public class Server {
     }
 
     public void processIncomingEvent(Event event) {
-        // implement this method
+        historyOfEvent.add(event);
+        if(mostActiveEntity.containsKey(event.getEntityId())){
+            mostActiveEntity.replace(event.getEntityId(), mostActiveEntity.get(event.getEntityId())
+            , mostActiveEntity.get(event.getEntityId()) + 1);
+        }
+        else {
+            mostActiveEntity.put(event.getEntityId(), 1);
+        }
+        logIf(logIf);
+        if(setIfActuator != null){
+            setActuatorStateIf(setIf, setIfActuator);
+        }
+        if(toggleIfActuator != null){
+            toggleActuatorStateIf(toggleIf, toggleIfActuator);
+        }
     }
 
     public void processIncomingRequest(Request request) {
-        // implement this method
+        String data = request.getRequestData();
+        String[] parts = data.split("\\|");
+        switch (request.getRequestCommand()) {
+            case CONTROL_NOTIFY_IF:
+                Filter LOGIF;
+                if(parts.length == 3){
+                    LOGIF = new Filter(BooleanOperator.valueOf(parts[1]), Boolean.valueOf(parts[2]));
+                }
+                else {
+                    LOGIF = new Filter(parts[1], DoubleOperator.valueOf(parts[2]), Double.valueOf(parts[3]));
+                }
+                logIf = LOGIF;
+                logIf(LOGIF);
+                break;
+
+            case PREDICT_NEXT_N_VALUES:
+                predictNextNValues(Integer.valueOf(parts[0]), Integer.valueOf(parts[1]));
+                break;
+
+            case ANALYSIS_GET_LATEST_EVENTS:
+                lastNEvents(Integer.parseInt(parts[0]));
+                break;
+
+            case ANALYSIS_GET_ALL_ENTITIES:
+                getAllEntities();
+                break;
+
+            case PREDICT_NEXT_N_TIMESTAMPS:
+                predictNextNTimeStamps(Integer.valueOf(parts[0]), Integer.valueOf(parts[1]));
+                break;
+
+            case CONTROL_SET_ACTUATOR_STATE:
+
+                Filter SETFILTER;
+                if(parts.length == 3){
+                    SETFILTER = new Filter(BooleanOperator.valueOf(parts[1]), Boolean.valueOf(parts[2]));
+                }
+                else {
+                    SETFILTER = new Filter(parts[1], DoubleOperator.valueOf(parts[2]), Double.valueOf(parts[3]));
+                }
+                setIf = SETFILTER;
+                setIfActuator = ActuatorIDs.get(Integer.valueOf(parts[0]));
+                break;
+
+            case CONFIG_UPDATE_MAX_WAIT_TIME:
+                updateMaxWaitTime(Double.valueOf(parts[0]));
+                break;
+
+            case ANALYSIS_GET_EVENTS_IN_WINDOW:
+                TimeWindow window = new TimeWindow(Double.valueOf(parts[0]), Double.valueOf(parts[1]));
+                eventsInTimeWindow(window);
+                break;
+
+            case CONTROL_TOGGLE_ACTUATOR_STATE:
+                Filter TOGGLEFILTER;
+                if(parts.length == 3){
+                    TOGGLEFILTER = new Filter(BooleanOperator.valueOf(parts[1]), Boolean.valueOf(parts[2]));
+                }
+                else {
+                    TOGGLEFILTER = new Filter(parts[1], DoubleOperator.valueOf(parts[2]), Double.valueOf(parts[3]));
+                }
+                toggleIf = TOGGLEFILTER;
+                toggleIfActuator = ActuatorIDs.get(Integer.valueOf(parts[0]));
+                break;
+
+            case ANALYSIS_GET_MOST_ACTIVE_ENTITY:
+                mostActiveEntity();
+                break;
+
+        }
+
     }
 
     public static void main(String[] args){

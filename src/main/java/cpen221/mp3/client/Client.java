@@ -60,7 +60,6 @@ public class Client {
         }
     }
 
-    // sends a request to the server
     public void sendRequest(Request request) {
         if(serverIP == null){
             System.out.println("message cannot be initialized, check serverIP");
@@ -70,8 +69,6 @@ public class Client {
             clientPrint.println(stringRequest);
             clientPrint.flush();
         }
-        // implement this method
-        // note that Request is a complex object that you need to serialize before sending
     }
 
     @Override

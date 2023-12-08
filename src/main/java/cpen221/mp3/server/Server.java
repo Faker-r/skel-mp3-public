@@ -20,6 +20,7 @@ import java.net.Socket;
 import java.security.KeyStore;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class Server {
@@ -35,8 +36,9 @@ public class Server {
     private ArrayList<Socket> sensorSockets;
     private ArrayList<Socket> actuatorSockets;
     private ArrayList<Event> log;
+    private Integer logTime;
 
-
+    private BlockingQueue<String> clientNotifications;
     private  Map<Integer, Entity> entityIDs;
 
     private  Map<Integer, Actuator> ActuatorIDs;
@@ -44,7 +46,7 @@ public class Server {
     private  Map<Integer, Sensor> SensorIDs;
 
     private Socket clientSocket;
-    private ArrayList<BlockingQueue> actuatorQueues;
+    private ArrayList<BlockingQueue> actuatorQueues = new ArrayList<>();
 
     private Filter logIf;
     private Filter toggleIf;
@@ -52,20 +54,13 @@ public class Server {
     private Actuator toggleIfActuator;
     private Actuator setIfActuator;
 
-
+    public ConcurrentHashMap<Integer, BlockingQueue<Request>> entityQueues; //Entity ID, list of commands
 
     // you may need to add additional private fields
 
     public Server(Client client){
         // implement the Server constructor
         this.client = client;
-        try{
-            socketForServer = new Socket();//
-            serverWriter = new PrintWriter(new OutputStreamWriter(socketForServer.getOutputStream()));
-            serverReader = new BufferedReader(new InputStreamReader(socketForServer.getInputStream()));
-        } catch (IOException e){
-            System.out.println("Cannot Initialized Server");
-        }
         //Make new thread to consume queue objects
     }
     public Server(int clientId){
@@ -121,6 +116,22 @@ public class Server {
         if (x){
             Request Command = new Request(RequestType.CONTROL, RequestCommand.CONTROL_SET_ACTUATOR_STATE
                     , "ON");
+            actuator.updateState(true);
+            //SEND COMMAND TO ACTUATOR
+        }
+    }
+
+    public void setActuatorStateIf(Filter filter, int ActuatorID) {
+
+        // implement this method and send the appropriate SeverCommandToActuator as a Request to the actuator
+        boolean x = historyOfEvent.stream()
+                .filter(m -> m.getEntityId() == ActuatorID)
+                .max(Comparator.comparingDouble(Event::getTimeStamp))
+                .map(Event::getValueBoolean)
+                .orElse(Boolean.FALSE);
+        if (x){
+            Request Command = new Request(RequestType.CONTROL, RequestCommand.CONTROL_SET_ACTUATOR_STATE
+                    , "ON");
             //SEND COMMAND TO ACTUATOR
         }
     }
@@ -143,6 +154,20 @@ public class Server {
                 .max(Comparator.comparingDouble(Event::getTimeStamp))
                 .map(Event::getValueBoolean)
                 .orElse(Boolean.FALSE);
+        if(x){
+            actuator.updateState(!actuator.getState());
+        }
+
+    }
+
+    public void toggleActuatorStateIf(Filter filter, int actuatorID) {
+        // implement this method and send the appropriate SeverCommandToActuator as a Request to the actuator
+        boolean x = historyOfEvent.stream()
+                .filter(m -> m.getEntityId() == actuatorID)
+                .max(Comparator.comparingDouble(Event::getTimeStamp))
+                .map(Event::getValueBoolean)
+                .orElse(Boolean.FALSE);
+
     }
 
     /**
@@ -152,8 +177,11 @@ public class Server {
      * @param filter the filter to check
      */
     public void logIf(Filter filter) {
-        if(filter.satisfies(historyOfEvent.get(0))){
-            log.add(historyOfEvent.get(0));
+        logIf = filter;
+        for(int i = historyOfEvent.size() - 1; i >= 0; i--){
+            if (historyOfEvent.get(i).getTimeStamp() > logTime ){
+
+            }
         }
     }
 
@@ -272,7 +300,7 @@ public class Server {
         return null;
     }
 
-    public void processIncomingEvent(Event event) {
+    synchronized public void processIncomingEvent(Event event) {
         historyOfEvent.add(event);
         if(mostActiveEntity.containsKey(event.getEntityId())){
             mostActiveEntity.replace(event.getEntityId(), mostActiveEntity.get(event.getEntityId())
@@ -281,12 +309,10 @@ public class Server {
         else {
             mostActiveEntity.put(event.getEntityId(), 1);
         }
-        logIf(logIf);
-        if(setIfActuator != null){
-            setActuatorStateIf(setIf, setIfActuator);
-        }
-        if(toggleIfActuator != null){
-            toggleActuatorStateIf(toggleIf, toggleIfActuator);
+        if(event.getTimeStamp() > logTime){
+            if(logIf.satisfies(event)){
+                log.add(event);
+            }
         }
     }
 
@@ -302,8 +328,8 @@ public class Server {
                 else {
                     LOGIF = new Filter(parts[1], DoubleOperator.valueOf(parts[2]), Double.valueOf(parts[3]));
                 }
-                logIf = LOGIF;
                 logIf(LOGIF);
+                logTime = Integer.valueOf(parts[0]);
                 break;
 
             case PREDICT_NEXT_N_VALUES:
@@ -312,10 +338,15 @@ public class Server {
 
             case ANALYSIS_GET_LATEST_EVENTS:
                 lastNEvents(Integer.parseInt(parts[0]));
+
                 break;
 
             case ANALYSIS_GET_ALL_ENTITIES:
-                getAllEntities();
+                String Combined = "";
+                for(Integer ID : getAllEntities()){
+                    Combined += ID + ", ";
+                }
+                clientNotifications.put(Combined);
                 break;
 
             case PREDICT_NEXT_N_TIMESTAMPS:
@@ -332,7 +363,10 @@ public class Server {
                     SETFILTER = new Filter(parts[1], DoubleOperator.valueOf(parts[2]), Double.valueOf(parts[3]));
                 }
                 setIf = SETFILTER;
-                setIfActuator = ActuatorIDs.get(Integer.valueOf(parts[0]));
+                if (ActuatorIDs.containsKey(Integer.valueOf(parts[0]))) {
+                    setIfActuator = ActuatorIDs.get(Integer.valueOf(parts[0]));
+                    setActuatorStateIf(setIf, setIfActuator);
+                }
                 break;
 
             case CONFIG_UPDATE_MAX_WAIT_TIME:

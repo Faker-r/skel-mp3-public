@@ -23,13 +23,11 @@ public class Request {
             if(!(requestCommand.equals(RequestCommand.CONFIG_UPDATE_MAX_WAIT_TIME))){
                 throw new IllegalArgumentException("Invalid request Command");
             }
-            else {}
         }
         else if(requestType.equals(RequestType.PREDICT)){
             if(!(requestCommand.equals(RequestCommand.PREDICT_NEXT_N_VALUES))){
                 throw new IllegalArgumentException("Invalid request Command");
             }
-            else {}
         }
         else if(requestType.equals(RequestType.CONTROL)){
             if(!(requestCommand.equals(RequestCommand.CONTROL_NOTIFY_IF) ||
@@ -37,7 +35,6 @@ public class Request {
                     requestCommand.equals(RequestCommand.CONTROL_TOGGLE_ACTUATOR_STATE))){
                 throw new IllegalArgumentException("Invalid request");
             }
-            else{}
         }
         else{
             if(!(requestCommand.equals(RequestCommand.ANALYSIS_GET_MOST_ACTIVE_ENTITY) ||

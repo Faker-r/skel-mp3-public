@@ -8,8 +8,7 @@ import cpen221.mp3.event.Event;
 import cpen221.mp3.event.SensorEvent;
 import cpen221.mp3.server.Server;
 
-import java.io.BufferedReader;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 
 class MessageHandlerThread implements Runnable {
@@ -30,6 +29,7 @@ class MessageHandlerThread implements Runnable {
     @Override
     public void run() {
         try{
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(incomingSocket.getOutputStream()));
             if (type.equals("Client")){
                 while (true) {
                     try{
@@ -49,6 +49,7 @@ class MessageHandlerThread implements Runnable {
                         String sensorEvent = reader.readLine();
                         Event newEvent = PARSER.SensorEvent(sensorEvent);
                         server.processIncomingEvent(newEvent);
+
                     } catch (IOException e){
                         e.printStackTrace();
                         System.out.println("Unable to get sensor data, EntityID" + String.valueOf("")); //fixing if the entityID
@@ -63,6 +64,11 @@ class MessageHandlerThread implements Runnable {
                         String actuatorEvent = reader.readLine();
                         Event newEvent = PARSER.actuatorEvent(actuatorEvent);
                         server.processIncomingEvent(newEvent);
+                        if(!server.entityQueues.get().isEmpty()) {
+                            Request x = server.entityQueues.get().poll();
+                            writer.println(x.toString());
+                            writer.flush();
+                        }
                     } catch (IOException e){
                         e.printStackTrace();
                         System.out.println("Unable to get sensor data, EntityID" + String.valueOf("")); //fixing if the entityID

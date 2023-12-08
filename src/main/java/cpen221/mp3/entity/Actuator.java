@@ -40,7 +40,6 @@ public class Actuator implements Entity {
     // the following specifies the http endpoint that the actuator should be able to receive commands on from server
     private String host = null;
     private int port = 0;
-    private ServerSocket actuatorServerSocket;
     private Socket actuatorSocket;
     private BufferedReader actuatorRead;
     private PrintWriter actuatorWrite;
@@ -51,12 +50,6 @@ public class Actuator implements Entity {
         this.clientId = -1;         // remains unregistered
         this.type = type;
         this.state = init_state;
-        // TODO: need to establish a server socket to listen for commands from server
-        try{
-            actuatorServerSocket = new ServerSocket(port); // need to be finished
-        } catch(IOException e){
-            System.out.println("Failing to initialize");
-        }
 
     }
 
@@ -65,12 +58,6 @@ public class Actuator implements Entity {
         this.clientId = clientId;   // registered for the client
         this.type = type;
         this.state = init_state;
-        // TODO: need to establish a server socket to listen for commands from server
-        try {
-            actuatorServerSocket = new ServerSocket(port); //need to be fixed
-        } catch(IOException e){
-            System.out.println("Failing to initialize");
-        }
     }
 
     public Actuator(int id, String type, boolean init_state, String serverIP, int serverPort) {
@@ -80,15 +67,6 @@ public class Actuator implements Entity {
         this.state = init_state;
         this.serverIP = serverIP;
         this.serverPort = serverPort;
-        // TODO: need to establish a server socket to listen for commands from server
-        try{
-            actuatorServerSocket = new ServerSocket(port);
-            actuatorSocket = new Socket(serverIP,serverPort);
-            actuatorWrite = new PrintWriter(new OutputStreamWriter(actuatorSocket.getOutputStream()));
-            actuatorRead = new BufferedReader(new InputStreamReader(actuatorSocket.getInputStream()));
-        } catch(IOException e){
-            System.out.println("Failing to initialize");
-        }
     }
 
     public Actuator(int id, int clientId, String type, boolean init_state, String serverIP, int serverPort) {
@@ -100,13 +78,13 @@ public class Actuator implements Entity {
         this.serverPort = serverPort;
         // TODO: need to establish a server socket to listen for commands from server
         try{
-            actuatorServerSocket = new ServerSocket();
             actuatorSocket = new Socket(serverIP,serverPort);
             actuatorWrite = new PrintWriter(new OutputStreamWriter(actuatorSocket.getOutputStream()));
             actuatorRead = new BufferedReader(new InputStreamReader(actuatorSocket.getInputStream()));
         } catch(IOException e){
             System.out.println("Failing to initialize");
         }
+
     }
 
     public int getId() {
@@ -224,6 +202,7 @@ public class Actuator implements Entity {
                 } else {
                     state = Boolean.TRUE;
                 }
+                break;
         }
     }
 

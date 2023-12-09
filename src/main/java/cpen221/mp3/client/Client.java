@@ -28,11 +28,12 @@ public class Client {
             clientSocket = new Socket(serverIP, serverPort);
             clientPrint = new PrintWriter(new OutputStreamWriter(clientSocket.getOutputStream()), true);
             clientReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            sendIntroMessage(); // Send introductory message after establishing the connection
+            sendIntroMessage(); // Send intro message after making the connection
         } catch (IOException e) {
             System.out.println("Client Cannot be initialized: " + e.getMessage());
         }
     }
+
 
     private void sendIntroMessage() {
         // Format: "Client|<clientId>"
@@ -68,12 +69,16 @@ public class Client {
             String stringRequest = request.toString();
             clientPrint.println(stringRequest);
             clientPrint.flush();
-            try {
-                String result = clientReader.readLine();
-                System.out.println(result);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+
+            if (request.getRequestType().equals(RequestType.ANALYSIS) || request.getRequestType().equals(RequestType.PREDICT)) {
+                try {
+                    String result = clientReader.readLine();
+                    System.out.println("Result of Request: " + result);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
+
         }
     }
 

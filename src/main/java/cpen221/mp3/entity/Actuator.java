@@ -76,15 +76,37 @@ public class Actuator implements Entity {
         this.state = init_state;
         this.serverIP = serverIP;
         this.serverPort = serverPort;
-        // TODO: need to establish a server socket to listen for commands from server
+
+
+
+        start();
+
+    }
+
+    public void start() {
         try{
             actuatorSocket = new Socket(serverIP,serverPort);
             actuatorWrite = new PrintWriter(new OutputStreamWriter(actuatorSocket.getOutputStream()));
             actuatorRead = new BufferedReader(new InputStreamReader(actuatorSocket.getInputStream()));
+            String introMessage = "Actuator|" + clientId + "|" + id;
+            actuatorWrite.println(introMessage);
+            actuatorWrite.flush();
+
+            //START TWO THREADS TO READ AND WRITE
+
         } catch(IOException e){
             System.out.println("Failing to initialize");
         }
 
+        startThreads();
+    }
+
+    private void startThreads() {
+        Thread writeThread = new Thread(() -> {
+            sharedVariable = 5; // Accessing and modifying the instance variable
+            doSomething(); // Calling an instance method
+        });
+        writeThread.start();
     }
 
     public int getId() {
@@ -125,11 +147,18 @@ public class Actuator implements Entity {
      * @return true if the actuator is new (clientID is -1 already) and gets successfully registered or if it is already registered for clientId, else false
      */
     public boolean registerForClient(int clientId) {
+        boolean ans;
         if(this.clientId == -1 || this.clientId == clientId){
             this.clientId = clientId;
-            return true;
+
+            ans = true;
         }
-        else return false;
+        else ans = false;
+
+        if (clientId != -1 && serverIP != null) {
+            start();
+        }
+        return ans;
     }
 
     /**
@@ -142,14 +171,9 @@ public class Actuator implements Entity {
     public void setEndpoint(String serverIP, int serverPort){
         this.serverIP = serverIP;
         this.serverPort = serverPort;
-        try{
-            actuatorSocket = new Socket(serverIP,serverPort);
-            actuatorWrite = new PrintWriter(new OutputStreamWriter(actuatorSocket.getOutputStream()));
-            actuatorRead = new BufferedReader(new InputStreamReader(actuatorSocket.getInputStream()));
-            System.out.println("new endpoint Has been initialized");
-        } catch (IOException e){
-            e.printStackTrace();
-            System.out.println("Actuator cannot be initiialized");
+
+        if (clientId != -1 && serverIP != null) {
+            start();
         }
     }
 

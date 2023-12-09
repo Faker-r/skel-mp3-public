@@ -85,6 +85,17 @@ public class Sensor implements Entity {
         }
     }
 
+    private void start() {
+
+    }
+    private void startThreads() {
+        Thread writeThread = new Thread(() -> {
+            sharedVariable = 5; // Accessing and modifying the instance variable
+            doSomething(); // Calling an instance method
+        });
+        writeThread.start();
+    }
+
     /**
      * returning the ID of the Sensor
      * id more than 0

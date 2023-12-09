@@ -64,11 +64,13 @@ class MessageHandlerThread implements Runnable {
                         String actuatorEvent = reader.readLine();
                         Event newEvent = PARSER.actuatorEvent(actuatorEvent);
                         server.processIncomingEvent(newEvent);
-                        if(!server.entityQueues.get().isEmpty()) {
+                        /*if(!server.entityQueues.get().isEmpty()) {
                             Request x = server.entityQueues.get().poll();
                             writer.println(x.toString());
                             writer.flush();
                         }
+
+                         */
                     } catch (IOException e){
                         e.printStackTrace();
                         System.out.println("Unable to get sensor data, EntityID" + String.valueOf("")); //fixing if the entityID

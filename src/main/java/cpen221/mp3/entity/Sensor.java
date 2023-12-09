@@ -1,7 +1,9 @@
 package cpen221.mp3.entity;
 
 import com.sun.java.accessibility.util.AccessibilityListenerList;
+import cpen221.mp3.event.ActuatorEvent;
 import cpen221.mp3.event.Event;
+import cpen221.mp3.event.SensorEvent;
 
 import java.io.*;
 import java.net.InetAddress;
@@ -34,6 +36,7 @@ public class Sensor implements Entity {
     private Socket sensorSocket;
     private PrintWriter sensorWriter;
     private int numFail = 0;
+    private double state = -1;
 
     public Sensor(int id, String type) {
         this.id = id;
@@ -45,13 +48,7 @@ public class Sensor implements Entity {
         this.id = id;
         this.clientId = clientId;   // registered for the client
         this.type = type;
-        try{
-            sensorSocket = new Socket(serverIP,serverPort);
-            sensorWriter = new PrintWriter(new OutputStreamWriter(sensorSocket.getOutputStream()));
-            System.out.println("Sucessfully Build Sensor : (id = " + id + ")");
-        } catch (IOException e){
-            System.out.println("Fail Build Sensor : (id = " + id + ")");
-        }
+
     }
 
     public Sensor(int id, String type, String serverIP, int serverPort) {
@@ -60,13 +57,6 @@ public class Sensor implements Entity {
         this.type = type;
         this.serverIP = serverIP;
         this.serverPort = serverPort;
-        try{
-            sensorSocket = new Socket(serverIP,serverPort);
-            sensorWriter = new PrintWriter(new OutputStreamWriter(sensorSocket.getOutputStream()));
-            System.out.println("Sucessfully Build and connect server : (id = " + id + ")");
-        } catch (IOException e){
-            System.out.println("Fail Build Sensor : (id = " + id + ")");
-        }
 
     }
 
@@ -76,6 +66,11 @@ public class Sensor implements Entity {
         this.type = type;
         this.serverIP = serverIP;
         this.serverPort = serverPort;
+
+        start();
+    }
+
+    private void start() {
         try{
             sensorSocket = new Socket(serverIP,serverPort);
             sensorWriter = new PrintWriter(new OutputStreamWriter(sensorSocket.getOutputStream()));
@@ -83,18 +78,22 @@ public class Sensor implements Entity {
         } catch (IOException e){
             System.out.println("Fail Build Sensor : (id = " + id + ")");
         }
+        startThread();
+    }
+    private void startThread() {
+        new Thread(() -> {
+            while (true) {
+                SensorEvent newEvent = new SensorEvent(System.currentTimeMillis(), clientId, id, type, state);
+                sendEvent(newEvent);
+                try {
+                    Thread.sleep((long) (1000 / eventGenerationFrequency));
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }).start();
     }
 
-    private void start() {
-
-    }
-    private void startThreads() {
-        Thread writeThread = new Thread(() -> {
-            sharedVariable = 5; // Accessing and modifying the instance variable
-            doSomething(); // Calling an instance method
-        });
-        writeThread.start();
-    }
 
     /**
      * returning the ID of the Sensor
@@ -137,12 +136,20 @@ public class Sensor implements Entity {
      * @return true if the sensor is new (clientID is -1 already) and gets successfully registered or if it is already registered for clientId, else false
      */
     public boolean registerForClient(int clientId) {
+        boolean ans;
         if(this.clientId == -1 || this.clientId == clientId){
             this.clientId = clientId;
-            return true;
+
+            ans = true;
         }
-        else return false;
+        else ans = false;
+
+        if (clientId != -1 && serverIP != null) {
+            start();
+        }
+        return ans;
     }
+
 
     /**
      * Sets or updates the http endpoint that
@@ -154,12 +161,9 @@ public class Sensor implements Entity {
     public void setEndpoint(String serverIP, int serverPort){
         this.serverIP = serverIP;
         this.serverPort = serverPort;
-        try{
-            sensorSocket = new Socket(serverIP,serverPort);
-            sensorWriter = new PrintWriter(new OutputStreamWriter(sensorSocket.getOutputStream()));
-            System.out.println("Sucessfully connect server : (id = " + id + ")");
-        } catch (IOException e){
-            System.out.println("Fail Build Sensor : (id = " + id + ")");
+
+        if (clientId != -1 && serverIP != null) {
+            start();
         }
     }
 
@@ -201,11 +205,7 @@ public class Sensor implements Entity {
                 System.out.println("Sent!");
             }
 
-            try {
-                Thread.sleep((long) (1000.0/eventGenerationFrequency));
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+
 
         }
         if(numFail == 10){

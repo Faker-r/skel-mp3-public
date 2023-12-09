@@ -1,11 +1,11 @@
 package cpen221.mp3.client;
 
 import cpen221.mp3.entity.Entity;
-import cpen221.mp3.server.Server;
 
 import java.io.*;
 import java.net.Socket;
 import java.util.*;
+
 
 public class Client {
 
@@ -71,12 +71,16 @@ public class Client {
             clientPrint.flush();
 
             if (request.getRequestType().equals(RequestType.ANALYSIS) || request.getRequestType().equals(RequestType.PREDICT)) {
-                try {
-                    String result = clientReader.readLine();
-                    System.out.println("Result of Request: " + result);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                new Thread(() -> {
+                    try {
+                        String result = clientReader.readLine();
+                        System.out.println("Result of Request: " + result);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }).start();
+
+
             }
 
         }

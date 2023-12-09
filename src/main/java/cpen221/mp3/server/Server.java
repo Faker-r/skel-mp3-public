@@ -35,7 +35,7 @@ public class Server {
     private Queue<Event> currentEvent = new PriorityQueue<>();
     private ArrayList<Socket> sensorSockets;
     private ArrayList<Socket> actuatorSockets;
-    private ArrayList<Event> log;
+    private ArrayList<Integer> log;
     private Integer logTime;
 
     private BlockingQueue<String> clientNotifications;
@@ -54,7 +54,7 @@ public class Server {
     private Actuator toggleIfActuator;
     private Actuator setIfActuator;
 
-    public ConcurrentHashMap<Integer, BlockingQueue<Request>> entityQueues; //Entity ID, list of commands
+    public ConcurrentHashMap<Integer, BlockingQueue<Request>> entityQueues  = new ConcurrentHashMap<>(); //Entity ID, list of commands
 
     // you may need to add additional private fields
 
@@ -121,7 +121,7 @@ public class Server {
         }
     }
 
-    public void setActuatorStateIf(Filter filter, int ActuatorID) {
+    public void setActuatorStateIf(Filter filter, int ActuatorID) throws InterruptedException {
 
         // implement this method and send the appropriate SeverCommandToActuator as a Request to the actuator
         boolean x = historyOfEvent.stream()
@@ -132,7 +132,7 @@ public class Server {
         if (x){
             Request Command = new Request(RequestType.CONTROL, RequestCommand.CONTROL_SET_ACTUATOR_STATE
                     , "ON");
-            //SEND COMMAND TO ACTUATOR
+            entityQueues.get(ActuatorID).put(Command);
         }
     }
 
@@ -160,14 +160,15 @@ public class Server {
 
     }
 
-    public void toggleActuatorStateIf(Filter filter, int actuatorID) {
+    public void toggleActuatorStateIf(Filter filter, int actuatorID) throws InterruptedException {
         // implement this method and send the appropriate SeverCommandToActuator as a Request to the actuator
         boolean x = historyOfEvent.stream()
                 .filter(m -> m.getEntityId() == actuatorID)
                 .max(Comparator.comparingDouble(Event::getTimeStamp))
                 .map(Event::getValueBoolean)
                 .orElse(Boolean.FALSE);
-
+        entityQueues.get(actuatorID).put(new Request(RequestType.CONTROL, RequestCommand.CONTROL_TOGGLE_ACTUATOR_STATE,
+                "TOGGLE"));
     }
 
     /**
@@ -180,7 +181,11 @@ public class Server {
         logIf = filter;
         for(int i = historyOfEvent.size() - 1; i >= 0; i--){
             if (historyOfEvent.get(i).getTimeStamp() > logTime ){
-
+                if(filter.satisfies((historyOfEvent.get(i)))) {
+                    log.add(historyOfEvent.get(i).getEntityId());
+                }
+            } else {
+                return;
             }
         }
     }
@@ -301,7 +306,12 @@ public class Server {
     }
 
     synchronized public void processIncomingEvent(Event event) {
-        historyOfEvent.add(event);
+        for(int i = historyOfEvent.size(); i <= 0; i--){
+             if (historyOfEvent.get(i).getTimeStamp() < event.getTimeStamp()){
+                historyOfEvent.add(i, event);
+                break;
+            }
+        }
         if(mostActiveEntity.containsKey(event.getEntityId())){
             mostActiveEntity.replace(event.getEntityId(), mostActiveEntity.get(event.getEntityId())
             , mostActiveEntity.get(event.getEntityId()) + 1);
@@ -311,7 +321,7 @@ public class Server {
         }
         if(event.getTimeStamp() > logTime){
             if(logIf.satisfies(event)){
-                log.add(event);
+                log.add(event.getEntityId());
             }
         }
     }

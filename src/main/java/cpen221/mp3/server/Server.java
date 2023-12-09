@@ -74,9 +74,9 @@ public class Server {
         this.toggleIfActuator = 0;
         runEventQueueThread();
     }
-    public void runEventQueueThread() {
+    //public void runEventQueueThread() {
 
-    }
+    //}
     public void addClient(Socket clientSocket) {
         this.clientSocket = clientSocket;
     }

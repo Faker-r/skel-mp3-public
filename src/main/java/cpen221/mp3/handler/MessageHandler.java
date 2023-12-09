@@ -177,7 +177,7 @@ class SensorReadThread extends ReaderThreadBase {
                 SensorEvent newEvent = PARSER.SensorEvent(message);
                 server.processIncomingEvent(newEvent);
 
-                toggleIFQueue.add(newEvent)
+                toggleIFQueue.add(newEvent);
 
             }
         } catch (IOException e) {
@@ -200,7 +200,7 @@ class ActuatorReadThread extends ReaderThreadBase {
 
                 server.processIncomingEvent(newEvent);
 
-                toggleIFQueue.add(newEvent)
+                toggleIFQueue.add(newEvent);
 
 
             }

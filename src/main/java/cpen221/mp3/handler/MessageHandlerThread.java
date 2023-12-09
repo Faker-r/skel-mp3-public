@@ -1,4 +1,4 @@
-package cpen221.mp3.handler;
+/*package cpen221.mp3.handler;
 
 import cpen221.mp3.client.Request;
 import cpen221.mp3.client.RequestCommand;
@@ -70,7 +70,7 @@ class MessageHandlerThread implements Runnable {
                             writer.flush();
                         }
 
-                         */
+
                     } catch (IOException e){
                         e.printStackTrace();
                         System.out.println("Unable to get sensor data, EntityID" + String.valueOf("")); //fixing if the entityID

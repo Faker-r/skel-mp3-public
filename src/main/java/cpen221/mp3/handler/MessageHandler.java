@@ -87,8 +87,8 @@ public class MessageHandler {
     }
 
     public static void main(String[] args) {
-        // you would need to initialize the RequestHandler with the port number
-        // and then start it here
+        MessageHandler handler = new MessageHandler(0);
+        handler.start();
 
         
     }

@@ -30,7 +30,7 @@ public class Request {
             }
         }
         else if(requestType.equals(RequestType.CONTROL)){
-            if(!(requestCommand.equals(RequestCommand.CONTROL_NOTIFY_IF) ||
+            if(!(requestCommand.equals(RequestCommand.CONTROL_LOG_IF) ||
                     requestCommand.equals(RequestCommand.CONTROL_SET_ACTUATOR_STATE) ||
                     requestCommand.equals(RequestCommand.CONTROL_TOGGLE_ACTUATOR_STATE))){
                 throw new IllegalArgumentException("Invalid request");
@@ -40,7 +40,8 @@ public class Request {
             if(!(requestCommand.equals(RequestCommand.ANALYSIS_GET_MOST_ACTIVE_ENTITY) ||
                     requestCommand.equals(RequestCommand.ANALYSIS_GET_LATEST_EVENTS) ||
                     requestCommand.equals(RequestCommand.ANALYSIS_GET_ALL_ENTITIES) ||
-                    requestCommand.equals(RequestCommand.ANALYSIS_GET_EVENTS_IN_WINDOW))){
+                    requestCommand.equals(RequestCommand.ANALYSIS_GET_EVENTS_IN_WINDOW) ||
+                    requestCommand.equals(RequestCommand.ANALYSIS_READ_LOG))){
                 throw new IllegalArgumentException("Invalid request");
             }
         }

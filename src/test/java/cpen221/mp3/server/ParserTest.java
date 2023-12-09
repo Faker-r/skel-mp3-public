@@ -1,4 +1,4 @@
-package cpen221.mp3.teamtest;
+package cpen221.mp3.server;
 
 import cpen221.mp3.client.Request;
 import cpen221.mp3.client.RequestCommand;
@@ -10,6 +10,7 @@ import cpen221.mp3.handler.PARSER;
 import java.util.*;
 
 
+import cpen221.mp3.server.DoubleOperator;
 import cpen221.mp3.server.Filter;
 import org.junit.jupiter.api.Test;
 
@@ -59,7 +60,7 @@ public class ParserTest {
         }
         assertTrue(check);
     }
-    
+
     @Test
     public void test6(){
         Event testEvent1 = new SensorEvent(0.1, 10, 10, "CO2", 2.3);
@@ -92,6 +93,7 @@ public class ParserTest {
         String stringList = PARSER.ParsingListOfEvent(testList);
         List<Event> testListOutcome = PARSER.ListOfEvent(stringList);
         assertEquals(2, testListOutcome.size());
+        Filter sensorValueFilter = new Filter("value", DoubleOperator.GREATER_THAN_OR_EQUALS, 23);
     }
 
 

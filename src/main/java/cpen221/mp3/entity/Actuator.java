@@ -2,7 +2,9 @@ package cpen221.mp3.entity;
 
 import cpen221.mp3.client.Client;
 import cpen221.mp3.client.Request;
+import cpen221.mp3.event.ActuatorEvent;
 import cpen221.mp3.event.Event;
+import cpen221.mp3.handler.PARSER;
 import cpen221.mp3.server.Server;
 import cpen221.mp3.server.SeverCommandToActuator;
 
@@ -103,10 +105,32 @@ public class Actuator implements Entity {
 
     private void startThreads() {
         Thread writeThread = new Thread(() -> {
-            sharedVariable = 5; // Accessing and modifying the instance variable
-            doSomething(); // Calling an instance method
+            while (true) {
+                ActuatorEvent newEvent = new ActuatorEvent(System.currentTimeMillis(), clientId, id, "Actuator", state);
+                sendEvent(newEvent);
+                try {
+                    Thread.sleep((long) (1000/eventGenerationFrequency));
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
         });
         writeThread.start();
+
+        Thread readThread = new Thread(() -> {
+            while (true) {
+                try {
+                    String message = actuatorRead.readLine();
+                    Request request = PARSER.clientRequest(message);
+                    processServerMessage(request);
+
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+
+        readThread.start();
     }
 
     public int getId() {
@@ -217,10 +241,10 @@ public class Actuator implements Entity {
 
     public void processServerMessage(Request command) {
         switch (command.getRequestCommand()){
-            case CONTROL_TOGGLE_ACTUATOR_STATE:
+            case CONTROL_SET_ACTUATOR_STATE:
                 state = Boolean.TRUE;
                 break;
-            case CONTROL_SET_ACTUATOR_STATE:
+            case CONTROL_TOGGLE_ACTUATOR_STATE:
                 if(state){
                     state = Boolean.FALSE;
                 } else {

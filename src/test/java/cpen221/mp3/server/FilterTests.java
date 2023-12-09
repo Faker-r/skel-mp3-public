@@ -12,6 +12,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import cpen221.mp3.handler.PARSER;
+import cpen221.mp3.teamtest.ParserTest;
 import org.junit.jupiter.api.Test;
 
 public class FilterTests{
@@ -131,6 +133,8 @@ public class FilterTests{
         assertEquals(filteredEvents, complexFilter.sift(eventsList));
     }
 
-    
+
+
+
 }
 

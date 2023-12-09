@@ -335,7 +335,10 @@ public class Server {
         String data = request.getRequestData();
         String[] parts = data.split("\\|");
         switch (request.getRequestCommand()) {
-            case CONTROL_NOTIFY_IF:
+            case ANALYSIS_READ_LOG:
+                ArrayList<Integer> currentLog = (ArrayList<Integer>) readLogs();
+                break;
+            case CONTROL_LOG_IF:
                 Filter LOGIF;
                 if(parts.length == 3){
                     LOGIF = new Filter(BooleanOperator.valueOf(parts[1]), Boolean.valueOf(parts[2]));

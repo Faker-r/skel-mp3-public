@@ -68,6 +68,12 @@ public class Client {
             String stringRequest = request.toString();
             clientPrint.println(stringRequest);
             clientPrint.flush();
+            try {
+                String result = clientReader.readLine();
+                System.out.println(result);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 

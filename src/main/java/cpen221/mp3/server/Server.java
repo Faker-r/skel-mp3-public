@@ -19,14 +19,14 @@ import java.io.*;
 import java.net.Socket;
 import java.security.KeyStore;
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 public class Server {
     private Client client;
     private int clientId;
     private double maxWaitTime = 2; // in seconds
+
     private Socket socketForServer;
     private PrintWriter serverWriter;
     private BufferedReader serverReader;
@@ -38,8 +38,9 @@ public class Server {
     private ArrayList<Integer> log;
     private double logTime;
 
-    private BlockingQueue<String> clientNotifications;
+    private BlockingQueue<String> clientNotifications = new LinkedBlockingQueue<>();
     private  Map<Integer, Entity> entityIDs;
+
 
     private  Map<Integer, Actuator> ActuatorIDs;
 
@@ -54,20 +55,27 @@ public class Server {
     private Integer toggleIfActuator;
     private Integer setIfActuator;
 
-    public ConcurrentHashMap<Integer, BlockingQueue<Request>> entityQueues  = new ConcurrentHashMap<>(); //Entity ID, list of commands
+    public ConcurrentHashMap<Integer, BlockingQueue<String>> entityQueues  = new ConcurrentHashMap<>(); //Entity ID, list of commands
+    public ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1); // Shared executor
 
     // you may need to add additional private fields
 
     public Server(Client client){
+        this.clientId = client.getClientId();
         // implement the Server constructor
         this.client = client;
         //Make new thread to consume queue objects
+        runEventQueueThread();
     }
     public Server(int clientId){
         this.clientId = clientId;
         this.logTime = Double.MAX_VALUE;
         this.setIfActuator = 0;
         this.toggleIfActuator = 0;
+        runEventQueueThread();
+    }
+    public void runEventQueueThread() {
+
     }
     public void addClient(Socket clientSocket) {
         this.clientSocket = clientSocket;
@@ -75,8 +83,8 @@ public class Server {
     public void addSensors(Socket sensorSocket) {
         sensorSockets.add(sensorSocket);
     }
-    public void addActuator(Socket actuatorSocket) {
-        actuatorSockets.add(actuatorSocket);
+    public void addActuator(int actuatorID) {
+        entityQueues.put(actuatorID, new LinkedBlockingQueue<Request>());
     }
 
     /**
@@ -160,6 +168,9 @@ public class Server {
 
         toggleIfActuator = actuatorID;
         toggleIf = filter;
+    }
+    public void toggleActuator(Filter filter, int EntityID) {
+
     }
 
     /**
@@ -364,7 +375,11 @@ public class Server {
                 for(Integer ID : getAllEntities()){
                     Combined += ID + ", ";
                 }
-                clientNotifications.put(Combined);
+                try {
+                    clientNotifications.put(Combined);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
                 break;
 
             case PREDICT_NEXT_N_TIMESTAMPS:
@@ -417,6 +432,18 @@ public class Server {
 
         }
 
+
+
+    }
+    public double getMaxWaitTime() {
+        return maxWaitTime;
+    }
+
+    public BlockingQueue<String> getClientNotifications() {
+        return clientNotifications;
+    }
+    public ConcurrentHashMap<Long, Event> getNewEventsQueue() {
+        return newEventsQueue;
     }
 
     public static void main(String[] args){

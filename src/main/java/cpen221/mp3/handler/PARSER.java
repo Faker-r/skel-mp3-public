@@ -24,7 +24,7 @@ public class PARSER {
 //                ",Requestdata=" + this.getRequestData();
 //    }
 
-    public static Event actuatorEvent(String input){
+    public static ActuatorEvent actuatorEvent(String input){
         String[] parsedInput = input.split("[=,}]");
         double timeStamp = Long.parseLong(parsedInput[1]);
         int clientID = Integer.parseInt(parsedInput[3]);
@@ -45,7 +45,7 @@ public class PARSER {
 //                '}';
 //    }
 
-    public static Event SensorEvent(String input){
+    public static SensorEvent SensorEvent(String input){
         String[] parsedInput = input.split("[=,}]");
         double timeStamp = Long.parseLong(parsedInput[1]);
         int clientID = Integer.parseInt(parsedInput[3]);

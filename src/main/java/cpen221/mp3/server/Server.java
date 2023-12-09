@@ -19,6 +19,9 @@ import java.io.*;
 import java.net.Socket;
 import java.security.KeyStore;
 import java.util.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
@@ -31,7 +34,7 @@ public class Server {
     private PrintWriter serverWriter;
     private BufferedReader serverReader;
     private List<Event> historyOfEvent = new ArrayList<>();
-    private Map<Integer, Integer> mostActiveEntity;
+    private ConcurrentHashMap<Integer, CopyOnWriteArrayList<Event>> mostActiveEntity;
     private Queue<Event> currentEvent = new PriorityQueue<>();
     private ArrayList<Socket> sensorSockets;
     private ArrayList<Socket> actuatorSockets;
@@ -47,7 +50,7 @@ public class Server {
     private  Map<Integer, Sensor> SensorIDs;
 
     private Socket clientSocket;
-    private ArrayList<BlockingQueue> actuatorQueues = new ArrayList<>();
+    private List<BlockingQueue> actuatorQueues = new CopyOnWriteArrayList<>();
 
     private Filter logIf;
     private Filter toggleIf;
@@ -261,12 +264,19 @@ public class Server {
      * @return the most active entity ID of the client
      */
     public int mostActiveEntity() {
-        Optional<Integer> maxKey = mostActiveEntity.entrySet()
-                .stream()
-                .max(Entry.comparingByValue())
-                .map(Entry::getKey);
-        if(maxKey.isPresent()){
-            return maxKey.orElse(0);
+        int max = 0;
+        int id = 0;
+        for(Integer key : mostActiveEntity.keySet()){
+            if(mostActiveEntity.get(key).size() > max){
+                max = mostActiveEntity.get(key).size();
+                id = key;
+            }
+            else if (mostActiveEntity.get(key).size() == max){
+                if (key > id){
+                    max = mostActiveEntity.get(key).size();
+                    id = key;
+                }
+            }
         }
         return 0;
     }
@@ -303,8 +313,42 @@ public class Server {
      * @return list of the predicted timestamps
      */
     public List<Object> predictNextNValues(int entityId, int n) {
-        // implement this method
-        return null;
+        List<Event> events = mostActiveEntity.get(entityId);
+        if (events.get(0).getValueDouble() == -1){
+            return predictHelperBoolean(events, n);
+        } else {
+            return predictHelperDouble(events, n);
+        }
+    }
+
+    public List<Boolean> predictHelperBoolean(List<Event> events, int n){
+        List<Boolean> answer = new ArrayList<>();
+        if(events.get(0).getValueBoolean() == events.get(1).getValueBoolean()){
+            for(int i = 0; i < n; i++){
+                answer.add(events.get(0).getValueBoolean());
+            }
+        } else if (events.get(0).getValueBoolean() == events.get(events.size() - 1).getValueBoolean()){
+            for(int i = 0; i < n; i ++){
+                if (i % 2 == 1){
+                    answer.add(events.get(0).getValueBoolean());
+                } else {
+                    answer.add(events.get(1).getValueBoolean());
+                }
+            }
+        } else {
+            for(int i = 0; i < n; i ++){
+                if (i % 2 == 1){
+                    answer.add(events.get(1).getValueBoolean());
+                } else {
+                    answer.add(events.get(0).getValueBoolean());
+                }
+            }
+        }
+        return answer;
+    }
+
+    public List<Object> predictHelperDouble (List<Event> events, int n){
+
     }
 
     synchronized public void processIncomingEvent(Event event) {
@@ -315,11 +359,11 @@ public class Server {
             }
         }
         if(mostActiveEntity.containsKey(event.getEntityId())){
-            mostActiveEntity.replace(event.getEntityId(), mostActiveEntity.get(event.getEntityId())
-            , mostActiveEntity.get(event.getEntityId()) + 1);
+            mostActiveEntity.get(event.getEntityId()).add(event);
         }
         else {
-            mostActiveEntity.put(event.getEntityId(), 1);
+            mostActiveEntity.put(event.getEntityId(), new CopyOnWriteArrayList<>());
+            mostActiveEntity.get(event.getEntityId()).add(event);
         }
         if(event.getTimeStamp() > logTime){
             if(logIf.satisfies(event)){

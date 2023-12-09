@@ -36,7 +36,7 @@ public class Server {
     private ArrayList<Socket> sensorSockets;
     private ArrayList<Socket> actuatorSockets;
     private ArrayList<Integer> log;
-    private Integer logTime;
+    private double logTime;
 
     private BlockingQueue<String> clientNotifications;
     private  Map<Integer, Entity> entityIDs;
@@ -51,8 +51,8 @@ public class Server {
     private Filter logIf;
     private Filter toggleIf;
     private Filter setIf;
-    private Actuator toggleIfActuator;
-    private Actuator setIfActuator;
+    private Integer toggleIfActuator;
+    private Integer setIfActuator;
 
     public ConcurrentHashMap<Integer, BlockingQueue<Request>> entityQueues  = new ConcurrentHashMap<>(); //Entity ID, list of commands
 
@@ -65,6 +65,9 @@ public class Server {
     }
     public Server(int clientId){
         this.clientId = clientId;
+        this.logTime = Double.MAX_VALUE;
+        this.setIfActuator = 0;
+        this.toggleIfActuator = 0;
     }
     public void addClient(Socket clientSocket) {
         this.clientSocket = clientSocket;
@@ -124,16 +127,9 @@ public class Server {
     public void setActuatorStateIf(Filter filter, int ActuatorID) throws InterruptedException {
 
         // implement this method and send the appropriate SeverCommandToActuator as a Request to the actuator
-        boolean x = historyOfEvent.stream()
-                .filter(m -> m.getEntityId() == ActuatorID)
-                .max(Comparator.comparingDouble(Event::getTimeStamp))
-                .map(Event::getValueBoolean)
-                .orElse(Boolean.FALSE);
-        if (x){
-            Request Command = new Request(RequestType.CONTROL, RequestCommand.CONTROL_SET_ACTUATOR_STATE
-                    , "ON");
-            entityQueues.get(ActuatorID).put(Command);
-        }
+        setIf = filter;
+        setIfActuator = ActuatorID;
+
     }
 
     /**
@@ -161,14 +157,9 @@ public class Server {
     }
 
     public void toggleActuatorStateIf(Filter filter, int actuatorID) throws InterruptedException {
-        // implement this method and send the appropriate SeverCommandToActuator as a Request to the actuator
-        boolean x = historyOfEvent.stream()
-                .filter(m -> m.getEntityId() == actuatorID)
-                .max(Comparator.comparingDouble(Event::getTimeStamp))
-                .map(Event::getValueBoolean)
-                .orElse(Boolean.FALSE);
-        entityQueues.get(actuatorID).put(new Request(RequestType.CONTROL, RequestCommand.CONTROL_TOGGLE_ACTUATOR_STATE,
-                "TOGGLE"));
+
+        toggleIfActuator = actuatorID;
+        toggleIf = filter;
     }
 
     /**
@@ -324,6 +315,20 @@ public class Server {
                 log.add(event.getEntityId());
             }
         }
+        if(toggleIfActuator != 0){
+            if(toggleIf.satisfies(event)){
+                Request Command = new Request(RequestType.CONTROL, RequestCommand.CONTROL_SET_ACTUATOR_STATE
+                        , "ON");
+                entityQueues.get(event.getEntityId()).put(Command);
+            }
+        }
+        if(setIfActuator != 0){
+            if(setIf.satisfies(event)){
+                Request Command = new Request(RequestType.CONTROL, RequestCommand.CONTROL_TOGGLE_ACTUATOR_STATE
+                        , "TOGGLE");
+                entityQueues.get(event.getEntityId()).put(Command);
+            }
+        }
     }
 
     public void processIncomingRequest(Request request) {
@@ -372,10 +377,10 @@ public class Server {
                 else {
                     SETFILTER = new Filter(parts[1], DoubleOperator.valueOf(parts[2]), Double.valueOf(parts[3]));
                 }
-                setIf = SETFILTER;
-                if (ActuatorIDs.containsKey(Integer.valueOf(parts[0]))) {
-                    setIfActuator = ActuatorIDs.get(Integer.valueOf(parts[0]));
-                    setActuatorStateIf(setIf, setIfActuator);
+                try {
+                    toggleActuatorStateIf(SETFILTER, Integer.valueOf(parts[0]));
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
                 }
                 break;
 
@@ -396,8 +401,11 @@ public class Server {
                 else {
                     TOGGLEFILTER = new Filter(parts[1], DoubleOperator.valueOf(parts[2]), Double.valueOf(parts[3]));
                 }
-                toggleIf = TOGGLEFILTER;
-                toggleIfActuator = ActuatorIDs.get(Integer.valueOf(parts[0]));
+                try {
+                    setActuatorStateIf(TOGGLEFILTER, Integer.valueOf(parts[0]));
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
                 break;
 
             case ANALYSIS_GET_MOST_ACTIVE_ENTITY:
